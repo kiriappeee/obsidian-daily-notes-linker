@@ -4,7 +4,11 @@ import { getDailyNote, getAllDailyNotes } from 'obsidian-daily-notes-interface';
 import { DailyNotesLinkerSettings } from './settings';
 
 async function getLatestJournalEntry(app: App, journalPath: string): Promise<string | null> {
-    const journalFiles = app.vault.getFiles().filter(file => file.path.startsWith(journalPath) && file.extension === 'md');
+    const journalFiles = app.vault.getFiles().filter(file => {
+        return file.path.startsWith(journalPath) &&
+               file.extension === 'md' &&
+               /journal-\d{4}-\d{2}-\d{2} - \w+/.test(file.name);
+    });
 
     if (journalFiles.length === 0) {
         return null;

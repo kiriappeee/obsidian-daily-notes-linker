@@ -4647,7 +4647,9 @@ var import_obsidian = require("obsidian");
 var import_moment2 = __toESM(require_moment());
 var import_obsidian_daily_notes_interface2 = __toESM(require_main());
 async function getLatestJournalEntry(app, journalPath) {
-  const journalFiles = app.vault.getFiles().filter((file) => file.path.startsWith(journalPath) && file.extension === "md");
+  const journalFiles = app.vault.getFiles().filter((file) => {
+    return file.path.startsWith(journalPath) && file.extension === "md" && /journal-\d{4}-\d{2}-\d{2} - \w+/.test(file.name);
+  });
   if (journalFiles.length === 0) {
     return null;
   }
