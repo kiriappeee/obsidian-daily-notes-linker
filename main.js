@@ -4644,7 +4644,6 @@ async function linkDailyNote(app, currentNote) {
 
 // src/journal.ts
 var import_obsidian = require("obsidian");
-var import_moment2 = __toESM(require_moment());
 var import_obsidian_daily_notes_interface2 = __toESM(require_main());
 async function getLatestJournalEntry(app, journalPath) {
   const journalFiles = app.vault.getFiles().filter((file) => {
@@ -4656,19 +4655,23 @@ async function getLatestJournalEntry(app, journalPath) {
   const sortedFiles = journalFiles.sort((a, b) => {
     const extractDate = (name) => {
       const match2 = name.match(/journal-(\d{4}-\d{2}-\d{2})/);
-      return match2 ? (0, import_moment2.default)(match2[1], "YYYY-MM-DD").valueOf() : 0;
+      if (!match2)
+        return 0;
+      const m = (0, import_obsidian.moment)(match2[1], "YYYY-MM-DD");
+      return m.isValid() ? m.valueOf() : 0;
     };
     const dateA = extractDate(a.name);
     const dateB = extractDate(b.name);
     return dateA - dateB;
   });
   const latestFile = sortedFiles[sortedFiles.length - 1];
+  console.log("Latest journal entry found:", latestFile.name);
   const match = latestFile.name.match(/journal-(\d{4}-\d{2}-\d{2} - \w+)/);
   return match ? match[1] : null;
 }
 async function createJournalEntry(app, settings) {
   const { journalPath } = settings;
-  const now = (0, import_moment2.default)();
+  const now = (0, import_obsidian.moment)();
   const todayDateString = now.format("YYYY-MM-DD");
   const weekday = now.format("ddd");
   const dailyNoteString = `${todayDateString} - ${weekday}`;

@@ -1,5 +1,4 @@
-import { App, TFile, Notice } from 'obsidian';
-import moment from 'moment';
+import { App, TFile, Notice, moment } from 'obsidian';
 import { getDailyNote, getAllDailyNotes } from 'obsidian-daily-notes-interface';
 import { DailyNotesLinkerSettings } from './settings';
 
@@ -19,7 +18,10 @@ async function getLatestJournalEntry(app: App, journalPath: string): Promise<str
         // Filename: journal-2026-01-05 - Mon.md
         const extractDate = (name: string) => {
             const match = name.match(/journal-(\d{4}-\d{2}-\d{2})/);
-            return match ? moment(match[1], 'YYYY-MM-DD').valueOf() : 0;
+            if (!match) return 0;
+            // @ts-ignore
+            const m = moment(match[1], 'YYYY-MM-DD');
+            return m.isValid() ? m.valueOf() : 0;
         };
 
         const dateA = extractDate(a.name);
@@ -29,6 +31,8 @@ async function getLatestJournalEntry(app: App, journalPath: string): Promise<str
     });
 
     const latestFile = sortedFiles[sortedFiles.length - 1];
+    console.log('Latest journal entry found:', latestFile.name);
+
     // return date string from filename
     const match = latestFile.name.match(/journal-(\d{4}-\d{2}-\d{2} - \w+)/);
     return match ? match[1] : null;
@@ -36,6 +40,7 @@ async function getLatestJournalEntry(app: App, journalPath: string): Promise<str
 
 export async function createJournalEntry(app: App, settings: DailyNotesLinkerSettings) {
     const { journalPath } = settings;
+    // @ts-ignore
     const now = moment();
     const todayDateString = now.format('YYYY-MM-DD');
     const weekday = now.format('ddd'); // Short weekday, e.g. Mon
