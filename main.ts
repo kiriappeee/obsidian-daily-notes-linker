@@ -1,9 +1,16 @@
 import { Plugin, Notice, Editor, MarkdownView } from 'obsidian';
 import { getDateFromFile } from 'obsidian-daily-notes-interface';
-import { linkDailyNote } from './src/core'; // This function will be created next
+import { linkDailyNote } from './src/core';
+import { createJournalEntry } from './src/journal';
+import { DailyNotesLinkerSettings, DEFAULT_SETTINGS } from './src/settings';
+import { DailyNotesLinkerSettingTab } from './src/settings-tab';
 
 export default class DailyNotesLinker extends Plugin {
+	settings: DailyNotesLinkerSettings;
+
 	async onload() {
+		await this.loadSettings();
+
 		this.addCommand({
 			id: 'link-current-daily-note',
 			name: 'Link current daily note',
@@ -29,9 +36,27 @@ export default class DailyNotesLinker extends Plugin {
 				}
 			}
 		});
+
+		this.addCommand({
+			id: 'create-journal-entry',
+			name: 'Create journal entry',
+			callback: async () => {
+				await createJournalEntry(this.app, this.settings);
+			}
+		});
+
+		this.addSettingTab(new DailyNotesLinkerSettingTab(this.app, this));
 	}
 
 	onunload() {
 
+	}
+
+	async loadSettings() {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	}
+
+	async saveSettings() {
+		await this.saveData(this.settings);
 	}
 }

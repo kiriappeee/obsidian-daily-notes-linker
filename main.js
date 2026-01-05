@@ -248,14 +248,14 @@ var require_main = __commonJS({
     async function createDailyNote(date) {
       const app = window.app;
       const { vault } = app;
-      const moment2 = window.moment;
+      const moment3 = window.moment;
       const { template, format, folder } = getDailyNoteSettings2();
       const [templateContents, IFoldInfo] = await getTemplateInfo(template);
       const filename = date.format(format);
       const normalizedPath = await getNotePath(folder, filename);
       try {
-        const createdFile = await vault.create(normalizedPath, templateContents.replace(/{{\s*date\s*}}/gi, filename).replace(/{{\s*time\s*}}/gi, moment2().format("HH:mm")).replace(/{{\s*title\s*}}/gi, filename).replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
-          const now = moment2();
+        const createdFile = await vault.create(normalizedPath, templateContents.replace(/{{\s*date\s*}}/gi, filename).replace(/{{\s*time\s*}}/gi, moment3().format("HH:mm")).replace(/{{\s*title\s*}}/gi, filename).replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
+          const now = moment3();
           const currentDate = date.clone().set({
             hour: now.get("hour"),
             minute: now.get("minute"),
@@ -276,11 +276,11 @@ var require_main = __commonJS({
         new obsidian.Notice("Unable to create new file.");
       }
     }
-    function getDailyNote(date, dailyNotes) {
+    function getDailyNote2(date, dailyNotes) {
       var _a;
       return (_a = dailyNotes[getDateUID(date, "day")]) != null ? _a : null;
     }
-    function getAllDailyNotes2() {
+    function getAllDailyNotes3() {
       const { vault } = window.app;
       const { folder } = getDailyNoteSettings2();
       const dailyNotesFolder = vault.getAbstractFileByPath(obsidian.normalizePath(folder));
@@ -302,8 +302,8 @@ var require_main = __commonJS({
     var WeeklyNotesFolderMissingError = class extends Error {
     };
     function getDaysOfWeek() {
-      const { moment: moment2 } = window;
-      let weekStart = moment2.localeData()._week.dow;
+      const { moment: moment3 } = window;
+      let weekStart = moment3.localeData()._week.dow;
       const daysOfWeek = [
         "sunday",
         "monday",
@@ -622,12 +622,12 @@ var require_main = __commonJS({
     exports.createQuarterlyNote = createQuarterlyNote;
     exports.createWeeklyNote = createWeeklyNote;
     exports.createYearlyNote = createYearlyNote;
-    exports.getAllDailyNotes = getAllDailyNotes2;
+    exports.getAllDailyNotes = getAllDailyNotes3;
     exports.getAllMonthlyNotes = getAllMonthlyNotes;
     exports.getAllQuarterlyNotes = getAllQuarterlyNotes;
     exports.getAllWeeklyNotes = getAllWeeklyNotes;
     exports.getAllYearlyNotes = getAllYearlyNotes;
-    exports.getDailyNote = getDailyNote;
+    exports.getDailyNote = getDailyNote2;
     exports.getDailyNoteSettings = getDailyNoteSettings2;
     exports.getDateFromFile = getDateFromFile3;
     exports.getDateFromPath = getDateFromPath;
@@ -4580,8 +4580,8 @@ __export(main_exports, {
   default: () => DailyNotesLinker
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian = require("obsidian");
-var import_obsidian_daily_notes_interface2 = __toESM(require_main());
+var import_obsidian3 = require("obsidian");
+var import_obsidian_daily_notes_interface3 = __toESM(require_main());
 
 // src/core.ts
 var import_obsidian_daily_notes_interface = __toESM(require_main());
@@ -4642,9 +4642,130 @@ async function linkDailyNote(app, currentNote) {
   }
 }
 
+// src/journal.ts
+var import_obsidian = require("obsidian");
+var import_obsidian_daily_notes_interface2 = __toESM(require_main());
+async function getLatestJournalEntry(app, journalPath) {
+  const journalFiles = app.vault.getFiles().filter((file) => {
+    return file.path.startsWith(journalPath) && file.extension === "md" && /journal-\d{4}-\d{2}-\d{2} - \w+/.test(file.name);
+  });
+  if (journalFiles.length === 0) {
+    return null;
+  }
+  const sortedFiles = journalFiles.sort((a, b) => {
+    const extractDate = (name) => {
+      const match2 = name.match(/journal-(\d{4}-\d{2}-\d{2})/);
+      if (!match2)
+        return 0;
+      const m = (0, import_obsidian.moment)(match2[1], "YYYY-MM-DD");
+      return m.isValid() ? m.valueOf() : 0;
+    };
+    const dateA = extractDate(a.name);
+    const dateB = extractDate(b.name);
+    return dateA - dateB;
+  });
+  const latestFile = sortedFiles[sortedFiles.length - 1];
+  console.log("Latest journal entry found:", latestFile.name);
+  const match = latestFile.name.match(/journal-(\d{4}-\d{2}-\d{2} - \w+)/);
+  return match ? match[1] : null;
+}
+async function createJournalEntry(app, settings) {
+  const { journalPath } = settings;
+  const now = (0, import_obsidian.moment)();
+  const todayDateString = now.format("YYYY-MM-DD");
+  const weekday = now.format("ddd");
+  const dailyNoteString = `${todayDateString} - ${weekday}`;
+  const newJournalFilename = `journal-${dailyNoteString}.md`;
+  const newJournalPath = `${journalPath}/${newJournalFilename}`;
+  const existingFile = app.vault.getAbstractFileByPath(newJournalPath);
+  if (existingFile) {
+    new import_obsidian.Notice("Journal entry for today already exists");
+    return;
+  }
+  const allDailyNotes = (0, import_obsidian_daily_notes_interface2.getAllDailyNotes)();
+  const dailyNote = (0, import_obsidian_daily_notes_interface2.getDailyNote)(now, allDailyNotes);
+  if (!dailyNote) {
+    new import_obsidian.Notice("Today's daily note file does not exist. Please create it manually");
+    return;
+  }
+  let dailyNoteContent = await app.vault.read(dailyNote);
+  if (!dailyNoteContent.includes("# Reflections")) {
+    new import_obsidian.Notice("Today's daily note does not contain '# Reflections' header.");
+    return;
+  }
+  const latestJournalEntryDateString = await getLatestJournalEntry(app, journalPath);
+  let previousEntryLink = "";
+  if (latestJournalEntryDateString) {
+    previousEntryLink = `[[journal-${latestJournalEntryDateString}|<--Previous entry]]`;
+  } else {
+    previousEntryLink = `[[|<--Previous entry]]`;
+  }
+  const newContent = `${previousEntryLink}
+
+`;
+  if (!await app.vault.adapter.exists(journalPath)) {
+    await app.vault.createFolder(journalPath);
+  }
+  const createdFile = await app.vault.create(newJournalPath, newContent);
+  new import_obsidian.Notice("Created journal entry for today");
+  if (latestJournalEntryDateString) {
+    const previousJournalFilename = `journal-${latestJournalEntryDateString}.md`;
+    const previousJournalPath = `${journalPath}/${previousJournalFilename}`;
+    const previousFile = app.vault.getAbstractFileByPath(previousJournalPath);
+    if (previousFile instanceof import_obsidian.TFile) {
+      console.log("Modifying previous journal entry to link to today's journal entry");
+      await app.vault.process(previousFile, (data) => {
+        const insertIndex = data.indexOf("]]") + 2;
+        if (insertIndex > 1) {
+          return data.slice(0, insertIndex) + ` | [[journal-${dailyNoteString}|Next entry-->]]` + data.slice(insertIndex);
+        }
+        return data;
+      });
+      console.log("Previous journal entry modified successfully");
+    }
+  }
+  console.log("Inserting a reference into the daily notes file");
+  await app.vault.process(dailyNote, (data) => {
+    const marker = "# Reflections";
+    const index = data.indexOf(marker);
+    if (index !== -1) {
+      const insertionPoint = index + marker.length;
+      return data.slice(0, insertionPoint) + `
+
+[[journal-${dailyNoteString}|Journal entry]]` + data.slice(insertionPoint);
+    }
+    return data;
+  });
+  console.log("Today's daily note file modified successfully");
+}
+
+// src/settings.ts
+var DEFAULT_SETTINGS = {
+  journalPath: "Logs/Journal"
+};
+
+// src/settings-tab.ts
+var import_obsidian2 = require("obsidian");
+var DailyNotesLinkerSettingTab = class extends import_obsidian2.PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+  display() {
+    const { containerEl } = this;
+    containerEl.empty();
+    containerEl.createEl("h2", { text: "Daily Notes Linker Settings" });
+    new import_obsidian2.Setting(containerEl).setName("Journal Folder Path").setDesc("The folder where journal entries are created (e.g. Logs/Journal).").addText((text) => text.setPlaceholder("Logs/Journal").setValue(this.plugin.settings.journalPath).onChange(async (value) => {
+      this.plugin.settings.journalPath = value;
+      await this.plugin.saveSettings();
+    }));
+  }
+};
+
 // main.ts
-var DailyNotesLinker = class extends import_obsidian.Plugin {
+var DailyNotesLinker = class extends import_obsidian3.Plugin {
   async onload() {
+    await this.loadSettings();
     this.addCommand({
       id: "link-current-daily-note",
       name: "Link current daily note",
@@ -4653,22 +4774,36 @@ var DailyNotesLinker = class extends import_obsidian.Plugin {
         if (!file) {
           return;
         }
-        const fileDate = (0, import_obsidian_daily_notes_interface2.getDateFromFile)(file, "day");
+        const fileDate = (0, import_obsidian_daily_notes_interface3.getDateFromFile)(file, "day");
         if (!fileDate) {
-          new import_obsidian.Notice("The current file is not a daily note.");
+          new import_obsidian3.Notice("The current file is not a daily note.");
           return;
         }
         try {
           await linkDailyNote(this.app, file);
-          new import_obsidian.Notice(`Links updated for ${file.basename}.`);
+          new import_obsidian3.Notice(`Links updated for ${file.basename}.`);
         } catch (err) {
           console.error("Failed to link daily note:", err);
-          new import_obsidian.Notice("Error linking daily note. Check the console.");
+          new import_obsidian3.Notice("Error linking daily note. Check the console.");
         }
       }
     });
+    this.addCommand({
+      id: "create-journal-entry",
+      name: "Create journal entry",
+      callback: async () => {
+        await createJournalEntry(this.app, this.settings);
+      }
+    });
+    this.addSettingTab(new DailyNotesLinkerSettingTab(this.app, this));
   }
   onunload() {
+  }
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+  async saveSettings() {
+    await this.saveData(this.settings);
   }
 };
 /*! Bundled license information:
