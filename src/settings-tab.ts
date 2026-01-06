@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import DailyNotesLinker from '../main';
+import { FolderSuggest } from './folder-suggest';
 
 export class DailyNotesLinkerSettingTab extends PluginSettingTab {
     plugin: DailyNotesLinker;
@@ -19,12 +20,15 @@ export class DailyNotesLinkerSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Journal Folder Path')
             .setDesc('The folder where journal entries are created (e.g. Logs/Journal).')
-            .addText(text => text
-                .setPlaceholder('Logs/Journal')
-                .setValue(this.plugin.settings.journalPath)
-                .onChange(async (value) => {
-                    this.plugin.settings.journalPath = value;
-                    await this.plugin.saveSettings();
-                }));
+            .addText(text => {
+                new FolderSuggest(this.app, text.inputEl);
+                text
+                    .setPlaceholder('Logs/Journal')
+                    .setValue(this.plugin.settings.journalPath)
+                    .onChange(async (value) => {
+                        this.plugin.settings.journalPath = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
     }
 }

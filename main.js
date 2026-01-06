@@ -4580,7 +4580,7 @@ __export(main_exports, {
   default: () => DailyNotesLinker
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian3 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 var import_obsidian_daily_notes_interface3 = __toESM(require_main());
 
 // src/core.ts
@@ -4745,8 +4745,38 @@ var DEFAULT_SETTINGS = {
 };
 
 // src/settings-tab.ts
+var import_obsidian3 = require("obsidian");
+
+// src/folder-suggest.ts
 var import_obsidian2 = require("obsidian");
-var DailyNotesLinkerSettingTab = class extends import_obsidian2.PluginSettingTab {
+var FolderSuggest = class extends import_obsidian2.AbstractInputSuggest {
+  constructor(app, textInputEl) {
+    super(app, textInputEl);
+    this.textInputEl = textInputEl;
+  }
+  getSuggestions(query) {
+    const lowerCaseQuery = query.toLowerCase();
+    const files = this.app.vault.getAllLoadedFiles();
+    const folders = [];
+    for (const file of files) {
+      if (file instanceof import_obsidian2.TFolder && file.path.toLowerCase().includes(lowerCaseQuery)) {
+        folders.push(file);
+      }
+    }
+    return folders;
+  }
+  renderSuggestion(file, el) {
+    el.setText(file.path);
+  }
+  selectSuggestion(file, evt) {
+    this.textInputEl.value = file.path;
+    this.textInputEl.dispatchEvent(new Event("input", { bubbles: true }));
+    this.close();
+  }
+};
+
+// src/settings-tab.ts
+var DailyNotesLinkerSettingTab = class extends import_obsidian3.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -4755,15 +4785,18 @@ var DailyNotesLinkerSettingTab = class extends import_obsidian2.PluginSettingTab
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Daily Notes Linker Settings" });
-    new import_obsidian2.Setting(containerEl).setName("Journal Folder Path").setDesc("The folder where journal entries are created (e.g. Logs/Journal).").addText((text) => text.setPlaceholder("Logs/Journal").setValue(this.plugin.settings.journalPath).onChange(async (value) => {
-      this.plugin.settings.journalPath = value;
-      await this.plugin.saveSettings();
-    }));
+    new import_obsidian3.Setting(containerEl).setName("Journal Folder Path").setDesc("The folder where journal entries are created (e.g. Logs/Journal).").addText((text) => {
+      new FolderSuggest(this.app, text.inputEl);
+      text.setPlaceholder("Logs/Journal").setValue(this.plugin.settings.journalPath).onChange(async (value) => {
+        this.plugin.settings.journalPath = value;
+        await this.plugin.saveSettings();
+      });
+    });
   }
 };
 
 // main.ts
-var DailyNotesLinker = class extends import_obsidian3.Plugin {
+var DailyNotesLinker = class extends import_obsidian4.Plugin {
   async onload() {
     await this.loadSettings();
     this.addCommand({
@@ -4776,15 +4809,15 @@ var DailyNotesLinker = class extends import_obsidian3.Plugin {
         }
         const fileDate = (0, import_obsidian_daily_notes_interface3.getDateFromFile)(file, "day");
         if (!fileDate) {
-          new import_obsidian3.Notice("The current file is not a daily note.");
+          new import_obsidian4.Notice("The current file is not a daily note.");
           return;
         }
         try {
           await linkDailyNote(this.app, file);
-          new import_obsidian3.Notice(`Links updated for ${file.basename}.`);
+          new import_obsidian4.Notice(`Links updated for ${file.basename}.`);
         } catch (err) {
           console.error("Failed to link daily note:", err);
-          new import_obsidian3.Notice("Error linking daily note. Check the console.");
+          new import_obsidian4.Notice("Error linking daily note. Check the console.");
         }
       }
     });
